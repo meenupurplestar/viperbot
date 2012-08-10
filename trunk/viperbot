@@ -1,0 +1,305 @@
+#!/usr/local/bin/bash
+# ViperBot v0.1
+# Based from eggdrop 1.6.18 and HM2k's LameBot
+# ViperBot created by Poppabear @ Efnet
+
+#-- Settings - Do NOT change these values unless you know what you are doing!
+viper_ver="v0.1"
+viper_dir=$HOME/viper
+viper_tmp=viper_tmp
+viper_url=http://viperbot.googlecode.com/svn/trunk
+viper_eggurl=ftp://ftp.eggheads.org/pub/eggdrop/source/stable
+viper_egg=eggdrop1.6.18.tar.gz
+viper_patchurl=http://www.egghelp.org/files/patches
+viper_ipv6patch=eggdrop-1.6.18-ipv6.patch-Scott.gz
+
+#-- BANNER
+echo -e "\E[36m
+____   ____ .__                             __________             __
+\   \ /   / |__| ______     ____   _______  \______   \   ____   _/  |
+ \   Y   /  |  | \____ \  _/ __ \  \_  __ \  |    |  _/  /  _ \  \   __\		
+  \     /   |  | |  |_> > \  ___/   |  | \/  |    |   \ (  <_> )  |  |
+   \___/    |__| |   __/   \___  >  |__|     |______  /  \____/   |__|
+                 |__|          \/                   \/
+
+Welcome to ViperBot.
+ViperBot $viper_ver
+Usage: viperbot <-I,-a,-u,-r> [path]
+If no path is specified $HOME/viper is used
+
+-I  Installs ViperBot (First time use only)
+-a  Adds a configuration for a NEW bot
+-u  Updates this file (viperbot) and viper.tcl
+-r  Startup a bot
+
+Specifying no parameters will display this banner.
+Contacts:
+\E[32mPoppabear @ Efnet\033[0m
+"
+
+#-- Main Script Functions
+viper_help() {
+	echo -e "\E[36m
+		Usage: viperbot <-I,-a,-u,-r> [path]
+		If no path is specified $HOME/viper is used
+
+		-I  Installs ViperBot (First time use only)
+		-a  Adds a configuration for a NEW bot
+		-u  Updates this file (viperbot) and viper.tcl
+		-r  Startup a bot
+
+		Specifying no parameters will display this banner.
+		Contacts:
+		\E[32mPoppabear @ Efnet\033[0m
+	"
+}
+
+viper_eggget(){
+	echo -e "\E[32mViperBot will now attempt to download $viper_egg \033[0m"
+	if [ -e $viper_tmp/$viper_egg ]; then
+		echo -e "\E[34mExtracting Eggdrop...\033[0m"
+                tar zxvf $viper_tmp/$viper_egg -C $viper_tmp
+                rm -f $viper_tmp/$viper_egg
+        else
+                viper_mkdir $viper_tmp
+                viper_get $viper_eggurl/$viper_egg $viper_tmp/$viper_egg
+                viper_eggget
+        fi
+
+}
+
+viper_mkdir() {
+	if [ ! -d $1 ]; then
+ 		mkdir $1
+	fi
+	if [ ! -d $1 ]; then
+		echo -e "\E[31mERROR: Unable to make directory $1!\033[0m"
+		exit $?
+	fi
+}
+
+viper_get() {
+	if hash wget 2>&- ; then
+		wget -t0 -O $2 $1
+	elif hash fetch 2>&- ; then
+		fetch -o $2 $1
+	elif hash curl 2>&- ; then
+		curl -o $2 $1
+	elif hash lynx 2>&- ; then
+		lynx -source $1 > $2
+	else
+		echo -e "\E[31mFATAL ERROR: Unable to find wget, fetch, curl or lynx.\033[0m"
+		exit $?
+	fi
+}
+
+viper_egginstall(){
+	viper_mkdir $viper_tmp
+	viper_cwd=$PWD
+	echo -e "\E[32mInstalling Eggdop...\033[0m"
+	cd $viper_tmp/eggdrop*.*
+	viper_get $viper_patchurl/$viper_ipv6patch ./$viper_ipv6patch
+	gunzip $viper_ipv6patch
+	mv eggdrop-1.6.18-ipv6.patch-Scott eggdrop-1.6.18-ipv6.patch
+	echo -e "\E[32mAttempting to patch eggdrop to support IPv6!\033[0m"
+	echo `patch -p1 < eggdrop-1.6.18-ipv6.patch`
+	sleep 5
+	./configure
+	viper_makecmd config
+	viper_makecmd static
+	viper_makecmd install DEST=$viper_dir
+	cd $viper_cwd
+}
+
+# Fixed to support FreeBSD's gmake
+viper_makecmd(){
+OS=`uname`
+
+	if [ $OS = "FreeBSD" ]; then
+		gmake $1 $2
+	else
+		make $1 $2
+	fi
+}
+
+viper_eggsetup(){
+	if [ -d $viper_tmp ]; then
+  		#cleanup
+		rm -fr $viper_tmp
+	fi
+	if [ -d $viper_dir ]; then
+		#setup
+		cp ~/viperbot $viper_dir/viperbot
+		viper_get $viper_url/motd $viper_dir/text/motd
+		viper_get $viper_url/banner $viper_dir/text/banner
+		rm -f README
+		rm -f $viper_dir/eggdrop.conf
+		rm -fr $viper_dir/doc
+		mv -f $viper_dir/eggdrop $viper_dir/viper
+	fi
+}
+
+#-- BOTNET FEATURE WILL BE ADDED IN FUTURE VERSION --#
+viper_getbotnet(){
+	if [ -d $viper_dir ]; then
+		if [ ! -e $viper_dir/botnet ]; then
+			read -p "Where is your botnet file? (eg: $viper_url/botnet) " viperbotnet
+			viper_get $viperbotnet $viper_dir/botnet
+		fi
+		if [ ! -e $viper_dir/botnet ]; then
+			viper_get $viper_url/botnet $viper_dir/botnet
+		fi
+	fi
+}
+
+viper_getcore(){
+	if [ -d $viper_dir ]; then
+		if [ -e $viper_dir/viper.tcl ]; then
+			mv $viper_dir/viper.tcl $viper_dir/viper.tcl.old
+		fi
+
+		viper_get $viper_url/viper.tcl $viper_dir/viper.tcl
+		viper_get $viper_url/servers.conf $viper_dir/servers.conf
+		viper_get $viper_url/viperbot.conf $viper_dir/viperbot.conf
+
+		if [ ! -e $viper_dir/viper.tcl ]; then
+			mv $viper_dir/viper.tcl.old $viper_dir/viper.tcl
+		fi
+	fi
+}
+
+viper_conf(){
+	read -p "ViperBot Nickname: " viper_nick
+	viper_conf=$viper_dir/$viper_nick.conf
+	if [ -e $viper_conf ]; then
+		mv $viper_conf $viper_conf.old
+	fi
+	echo set nick '"'$viper_nick'"'>> $viper_conf
+	echo set altnick '"'$viper_nick-'"'>> $viper_conf
+	echo set userfile '"'$viper_nick.user'"'>> $viper_conf
+	echo set chanfile '"'$viper_nick.chan'"'>> $viper_conf
+	echo set notefile '"'$viper_nick.notes'"'>> $viper_conf
+
+	read -p "ViperBot Realname: " viper_realname
+	echo set realname '"'$viper_realname'"' >> $viper_conf
+
+	read -p "Set Owner (your irc nick): " viper_owner
+        echo set owner '"'$viper_owner'"' >> $viper_conf
+	echo set admin '"'$viper_owner'"' >> $viper_conf
+	echo set notify-newusers '"'$viper_owner'"' >> $viper_conf
+	echo set username '"'$viper_owner'"' >> $viper_conf
+
+	echo -en "Would you like to use IPv6 for this bot? (y/n): "
+	read yesno;
+
+	if [[ $yesno = "y" || $yesno = "Y" ]]; then
+       		echo set my-hostname6 '"''"' >> $viper_conf
+        	read -p "Set my IPv6 IP: " viper_ip
+        	echo set my-ip6 '"'$viper_ip'"' >> $viper_conf
+	else
+        	echo set my-hostname '"''"' >> $viper_conf
+        	read -p "Set my IPv4 IP: " viper_ip
+        	echo set my-ip '"'$viper_ip'"' >> $viper_conf
+	fi
+
+	read -p "ViperBot listening PORT: " viper_port
+        echo listen '"'$viper_port'"' all >> $viper_conf
+
+	#echo source botnet >> $viper_conf
+	echo source viperbot.conf >> $viper_conf
+	echo source servers.conf >> $viper_conf
+	echo source viper.tcl >> $viper_conf
+	chmod 666 $viper_conf
+
+  viper_run
+}
+
+viper_run(){
+	if [ ! -e $viper_dir/viper ]; then
+		echo -e "\E[33mWARNING: Could not find 'viper' in $viper_dir/, check for errors...\033[0m"
+		exit $?
+	fi
+
+  viper_conf=$viper_nick.conf
+
+  if [ -e $viper_dir/$viper_conf ]; then
+    echo -e "\E[32mStarting bot ...\033[0m"
+    $viper_dir/viper -m $viper_conf
+    echo -e "\E[32mFinished, Eggdrop '$viper_nick' should be running\033[0m"
+  else
+    echo -e "\E[33mWARNING: Could not find '$viper_conf', check for errors...\033[0m"
+  fi
+}
+
+viper_install(){
+
+	if [ -d $viper_dir ]; then
+		echo -e "\E[31mERROR: ViperBot is already installed! If you need to re-install delete $viper_dir and run \"bash ~/viper -I\"!\033[0m"
+		exit $?
+	else
+		if [ ! -e $viper_tmp/eggdrop ]; then
+			if [ ! -e $viper_tmp/$viper_egg ]; then
+				viper_eggget
+			fi
+			viper_egginstall
+		fi
+		viper_eggsetup
+		viper_getcore
+		#viper_getbotnet
+	fi
+}
+
+viper_new(){
+	if [ ! -d $viper_dir ]; then
+		echo -e "\E[31mERROR: Directory does not exist! Make sure ViperBot was installed correctly, Make sure $viper_dir exists!\033[0m"
+		exit $?
+	else
+		viper_getcore
+		#viper_getbotnet
+		viper_conf
+	fi
+}
+
+viper_update(){
+	viper_botupdate
+	viper_getcore
+	viper_rehash
+	echo -e "\E[32mviperbot and viper.tcl WAS UPDATED\033[0m"
+}
+
+viper_botupdate(){
+	mv -f $0 viperbot.old
+	viper_get $viper_url/viperbot $0
+	chmod 755 viperbot
+}
+
+viper_rehash(){
+	kill -HUP `cat $viper_dir/pid.*`
+}
+
+toLower() { echo $1 | tr '[A-Z]' '[a-z]'; }
+
+if [ $1 ]; then
+	if [ $2 ]; then
+		viperdir=$2
+	fi
+	if [ $1 = "-I" ]; then
+		viper_install
+	elif [ $1 = "-a" ]; then 
+		viper_new
+	elif [ $1 = "-u" ]; then
+		viper_update
+	elif [ $1 = "-r" ]; then
+		if [ $2 ]; then
+			viper_nick=$2
+		else
+			read -p "ViperBot Nickname: " viper_nick
+		fi
+		viper_run $viper_dir/$viper_nick
+	else 
+		viper_help
+	fi
+fi
+
+exit 0
+#EOF
