@@ -55,6 +55,7 @@ if {[isalthub]} {
 }
 
 proc proc_addleaf {hand idx args} {
+global home_chan
 	set strn [string trim $args "{"]
 	set arg [string trim $strn "}"]
 
