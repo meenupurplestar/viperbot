@@ -36,7 +36,7 @@ if {[ishub]} {
 		addbot $ahubnick $ahubaddr
 		setuser $ahubnick botaddr $ahubaddr $ahubport $ahubport
 		setuser $ahubnick hosts $ah_host
-		chattr $ahubnickt +fox
+		chattr $ahubnick +fox
 		botattr $ahubnick +gs
 	}
 }
