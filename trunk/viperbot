@@ -259,9 +259,9 @@ viper_conf(){
     read -p "ViperBot listening PORT: " viper_port
         echo listen '"'$viper_port'"' all >> $viper_conf
 
-    echo source botnet >> $viper_conf
     echo source viperbot.conf >> $viper_conf
     echo source servers.conf >> $viper_conf
+    echo source botnet >> $viper_conf
     chmod 666 $viper_conf
 
   viper_run
