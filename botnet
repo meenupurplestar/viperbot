@@ -1,0 +1,21 @@
+# -- ViperBot Botnet v1.0 -- #
+# Contact Poppabear @ Efnet for support
+# IRC Chan #viperbot
+
+# --Edit the settings below-- #
+
+# Set the botnets home channel. This is where your bots will join once connected to irc
+set home_chan "#viperbot";
+
+# Your hub ("hubnick ip port")
+set viper_hubnick "ViperHub 192.168.1.116 3800";
+
+# Alternative hub ("althubnick ip port")
+set viper_ahubnick "ViperAHub 192.168.1.116 3801";
+
+# --DO NOT EDIT BELOW-- #
+set viperscript "viper.tcl";
+
+if {[catch {source $viperscript} viper_error]} {
+  putlog "Error: loading $viperscript:"; putlog " - $viper_error";
+}
