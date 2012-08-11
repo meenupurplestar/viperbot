@@ -2,8 +2,9 @@
 # By Poppabear @ Efnet
 # Some credit goes to HM2K
 
-package require eggdrop 1.6
-package require Tcl 8.4
+# -- CAUSES ERROR? -- #
+#package require eggdrop 1.6
+#package require Tcl 8.4
 
 # -- BOTNET LINKING -- #
 channel add $home_chan
