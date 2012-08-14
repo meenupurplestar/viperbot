@@ -183,7 +183,8 @@ viper_getbotnet(){
 		if [ ! -e $viper_dir/botnet ]; then
 			echo -e "\E[33mNOTE: Be sure to edit $viper_dir/botnet BEFORE adding your first bot.\033[0m"
 			echo -e "\E[33mYour first 2 bots that you add MUST match whats in the botnet file.\033[0m"
-			echo -e "\E[33mIf you need help with this please come see us at #viperbot on Efnet.\033[0m"
+      echo -e "\E[33mYour botnet bots should use IPv4 Addresses, This should allow them to link without issues.\033[0m"
+      echo -e "\E[33mIf you need help with this please come see us at #viperbot on Efnet.\033[0m"
 			echo " "
 			read -p "Where is your botnet file? (eg: $viper_url/botnet) " viperbotnet
 			viper_get $viperbotnet $viper_dir/botnet
@@ -236,13 +237,15 @@ viper_conf(){
 	if [[ $yesno = "y" || $yesno = "Y" ]]; then
         	read -p "Set vhost6 (This can be the hostname or IPv6 Address): " viper_ipv6
         	echo set vhost6 '"'$viper_ipv6'"' >> $viper_conf
-		echo set listen-addr '"'$viper_ipv6'"' >> $viper_conf
+		      echo set prefer-ipv6 1 >> $viper_conf
 	else
-                read -p "Set vhost4 (This can be the hostname or IPv4 Address): " viper_ipv4
-                echo set vhost4 '"'$viper_ipv4'"' >> $viper_conf
-		echo set listen-addr '"'$viper_ipv4'"' >> $viper_conf
+          read -p "Set vhost4 (This can be the hostname or IPv4 Address): " viper_ipv4
+          echo set vhost4 '"'$viper_ipv4'"' >> $viper_conf
+		      echo set prefer-ipv6 0 >> $viper_conf
 	fi
-
+   
+  read -p "ViperBot listening Address (Must be IPv4 in order DCC Chat/Telnet): " viper_listen 
+        echo set listen-addr '"'$viper_listen'"' >> $viper_conf
 	read -p "ViperBot listening PORT: " viper_port
         echo listen '"'$viper_port'"' all >> $viper_conf
 
