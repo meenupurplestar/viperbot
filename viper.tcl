@@ -3,6 +3,22 @@
 # Very little code was used from HM2K's LameBot. Code used will have # -- Thanks :)
 # All code used was Re-Written by Poppabear @ efnet (c) 2012
 
+# -- OWNER CREATION -- #
+proc add_owner {} {
+	if {![validuser $::owner] && [validchan $::homechan]} {
+		set o_host "*!"
+		append o_host [getchanhost $::owner $::home_chan]
+
+		adduser $::owner $o_host
+		setuser $::owner PASS $::botnet_pass
+		chattr $::owner +nmop
+		save
+		putlog "$::owner was added as the Owner!"
+	} else {
+		timer 5 add_owner
+	}
+}
+
 # -- BOTNET LINKING -- #
 set hubnick [lindex $viper_hubnick 0]
 set hubaddr [lindex $viper_hubnick 1]
@@ -22,10 +38,11 @@ proc isalthub {} {
 }
 
 proc viper_linkalthub {} {
+	if {![validuser $::hubnick]} {
+		addbot $::hubnick $::hubaddr
+		setuser $::hubnick botaddr $::hubaddr $::hubport $::hubport
+	}
 	if {![validuser $::ahubnick]} {
-	    if {![validchan $::home_chan]} {
-		return 0
-	    }
 	    if {[onchan $::ahubnick $::home_chan]} {
 		set ah_host "*!"
 		append ah_host [getchanhost $::ahubnick $::home_chan]
@@ -34,11 +51,11 @@ proc viper_linkalthub {} {
 		setuser $::ahubnick botaddr $::ahubaddr $::ahubport $::ahubport
 		setuser $::ahubnick hosts $ah_host
 		setuser $::ahubnick PASS $::botnet_pass
-		chattr $::ahubnick +fox
-		botattr $::ahubnick +aghp
+		chattr $::ahubnick +fo
+		botattr $::ahubnick +gs
 		link $::ahubnick
 		putlog "ViperBot Added: $::ahubnick @ $::ahubaddr P: $::ahubport "
-		if {[set utid [timerexists viper_linkalthub]]!=""} {
+		if {[set utid [utimerexists viper_linkalthub]]!=""} {
 			killutimer $utid
 		}
 		save
@@ -49,11 +66,12 @@ proc viper_linkalthub {} {
 }
 
 proc viper_linkhub {} {
-        if {![validuser $::hubnick]} {
-            if {![validchan $::home_chan]} {
-                return 0
-            }
-            if {[onchan $::hubnick $::home_chan]} {
+	if {![validuser $::ahubnick]} {
+                addbot $::ahubnick $::ahubaddr
+                setuser $::ahubnick botaddr $::ahubaddr $::ahubport $::ahubport
+        }
+        if {![validuser $::ahubnick]} {
+	    if {[onchan $::hubnick $::home_chan]} {
                 set h_host "*!"
                 append h_host [getchanhost $::hubnick $::home_chan]
 
@@ -61,11 +79,11 @@ proc viper_linkhub {} {
                 setuser $::hubnick botaddr $::hubaddr $::hubport $::hubport
                 setuser $::hubnick hosts $h_host
 		setuser $::hubnick PASS $::botnet_pass
-                chattr $::hubnick +fox
-                botattr $::hubnick +gs
+                chattr $::hubnick +fo
+                botattr $::hubnick +ghp
 		link $::hubnick
                 putlog "ViperBot Added: $::hubnick @ $::hubaddr P: $::hubport "
-                if {[set utid [timerexists viper_linkhub]]!=""} {
+                if {[set utid [utimerexists viper_linkhub]]!=""} {
                         killutimer $utid
                 }
 		save
@@ -74,8 +92,13 @@ proc viper_linkhub {} {
             }
         } else { putlog "$::hubnick is already added to the userfile." }
 }
-viper_linkhub
-viper_linkalthub
+
+if {[ishub]} {
+	viper_linkalthub
+}
+if {[isalthub]} {
+	viper_linkhub
+}
 
 
 # -- Thanks :)
@@ -86,17 +109,6 @@ proc matchbotattr {bot flags} {
                 }
         }
         return 1
-}
-
-proc botnet_check {} {
-    foreach b [userlist b] {
-	if {$b != $::hubnick && $b != $::ahubnick} {
-		if {[matchattr $b d] || ![matchattr $b o] || ![matchattr $b f]} {
-			chattr $b -d+fo
-		}
-	}
-    }
-save
 }
 
 proc botnet_linkcheck {} {
@@ -111,7 +123,6 @@ proc botnet_linkcheck {} {
         }
 }
 
-utimer 15 botnet_check
 utimer 5 botnet_linkcheck
 
 
@@ -240,6 +251,7 @@ proc do_homechan {chan} {
 }
 
 do_homechan $home_chan
+add_owner
 
 # -- Thanks :)
 proc hasops {chan} {
@@ -280,11 +292,22 @@ proc need_req {chan need} {
     }
     return 0
 }
+proc bots_opped {chan} {
+	foreach bot [bots] {
+		if {![isop $bot $chan]} {
+			return 0
+		}
+	}
+return 1
+}
 
 proc req_op {chan} {
+	if {[bots_opped $chan]} {
+		return 0
+	}
 	if {[isop $::botnick $chan]} {
 		foreach bot [chanlist $chan b] {
-				pushquick "MODE $chan +o $bot" -next
+				putquick "MODE $chan +o $bot" -next
 				lappend rbots $bot
 		}
 	}
@@ -351,4 +374,3 @@ proc evnt:init_server {type} {
 
 
 putlog "-- ViperBot TCL by Poppabear Loaded! --"
-
