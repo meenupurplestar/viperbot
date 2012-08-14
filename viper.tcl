@@ -5,7 +5,7 @@
 
 # -- OWNER CREATION -- #
 proc add_owner {} {
-	if {![validuser $::owner] && [validchan $::homechan]} {
+	if {![validuser $::owner] && [validchan $::home_chan]} {
 		set o_host "*!"
 		append o_host [getchanhost $::owner $::home_chan]
 
