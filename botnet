@@ -7,6 +7,9 @@
 # Set the botnets home channel. This is where your bots will join once connected to irc
 set home_chan "#viperbot";
 
+# Set a botnet password here. This should be a random string.
+set botnet_pass "viperbot1234"
+
 # Your hub ("hubnick ip port")
 set viper_hubnick "ViperHub 192.168.1.116 3800";
 
