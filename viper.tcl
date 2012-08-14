@@ -3,19 +3,49 @@
 # Very little code was used from HM2K's LameBot. Code used will have # -- Thanks :)
 # All code used was Re-Written by Poppabear @ efnet (c) 2012
 
-# -- OWNER CREATION -- #
-proc add_owner {} {
-	if {![validuser $::owner] && [validchan $::home_chan]} {
-		set o_host "*!"
-		append o_host [getchanhost $::owner $::home_chan]
+# -- Thanks :)
+proc ishub {} {
+        return [string equal -nocase $::botnick $::hubnick]
+}
 
-		adduser $::owner $o_host
-		setuser $::owner PASS $::botnet_pass
-		chattr $::owner +nmop
-		save
-		putlog "$::owner was added as the Owner!"
+# -- Thanks :)
+proc isalthub {} {
+        return [string equal -nocase $::botnick $::ahubnick]
+}
+
+# -- OWNER CREATION -- #
+bind msg - auth auth_owner
+
+proc auth_msg {} {
+	if {![validuser $::owner] && [validchan $::home_chan] && [onchan $::owner $::home_chan] && [ishub]} {
+                putserv "NOTICE $::owner :Hello $::owner, Please /msg $::hubnick AUTH <password>"
 	} else {
-		timer 5 add_owner
+                timer 1 auth_msg
+        }
+}
+
+proc auth_owner {nick host hand arg} {
+	set pass [lindex $arg 0]
+	if {![string equal $pass $::botnet_pass] || ![string equal $nick $::owner]} {
+		return 0
+	} elseif {![validuser $::owner] && [validchan $::home_chan] && [onchan $::owner $::home_chan] && [ishub]} {
+		putserv "NOTICE $::owner :Password ACCEPTED!"
+		add_owner $::owner
+	}
+}
+
+proc add_owner {nick} {
+	if {![validuser $nick]} {
+		set o_host "*!"
+		append o_host [getchanhost $nick $::home_chan]
+
+		adduser $nick $o_host
+		setuser $nick PASS $::botnet_pass
+		chattr $nick +nmop
+		save
+		putlog "$nick was added as the Owner!"
+	} else {
+		putlog "$nick is already a valid user in my userfile"
 	}
 }
 
@@ -26,16 +56,6 @@ set hubport [lindex $viper_hubnick 2]
 set ahubnick [lindex $viper_ahubnick 0]
 set ahubaddr [lindex $viper_ahubnick 1]
 set ahubport [lindex $viper_ahubnick 2]
-
-# -- Thanks :)
-proc ishub {} {
-        return [string equal -nocase $::botnick $::hubnick]
-}
-
-# -- Thanks :)
-proc isalthub {} {
-        return [string equal -nocase $::botnick $::ahubnick]
-}
 
 proc viper_linkalthub {} {
 	if {![validuser $::hubnick]} {
@@ -251,7 +271,7 @@ proc do_homechan {chan} {
 }
 
 do_homechan $home_chan
-add_owner
+timer 1 auth_msg
 
 # -- Thanks :)
 proc hasops {chan} {
@@ -374,3 +394,4 @@ proc evnt:init_server {type} {
 
 
 putlog "-- ViperBot TCL by Poppabear Loaded! --"
+
