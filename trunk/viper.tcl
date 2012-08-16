@@ -1,16 +1,32 @@
 # -- ViperBot viper.tcl v1.0.20 -- #
 # Written by Poppabear @ Efnet (c) 2012
-# Very little code was used from HM2K's LameBot. Code used will have # -- Thanks :)
-# All code used was Re-Written by Poppabear @ efnet (c) 2012
+# Very little code was used from HM2K's LameBot.
+# ALL code used was Re-Written by Poppabear @ efnet (c) 2012
 
-# -- Thanks :)
+if {![info exists loaded]} {
+	set loaded 0
+}
+
 proc ishub {} {
         return [string equal -nocase $::botnick $::hubnick]
 }
 
-# -- Thanks :)
 proc isalthub {} {
         return [string equal -nocase $::botnick $::ahubnick]
+}
+
+proc isowner {arg} {
+	if {[string equal -nocase $i $arg]} {
+		return 1
+	}
+return 0
+}
+
+proc notowner {idx} {
+        if {![valididx $idx]} {
+		return 0
+	}
+        putidx $idx "You are not authorized."
 }
 
 # -- OWNER CREATION -- #
@@ -19,9 +35,7 @@ bind msg - auth auth_owner
 proc auth_msg {} {
 	if {![validuser $::owner] && [validchan $::home_chan] && [onchan $::owner $::home_chan] && [ishub]} {
                 putserv "NOTICE $::owner :Hello $::owner, Please /msg $::hubnick AUTH <password>"
-	} else {
-                timer 1 auth_msg
-        }
+	}
 }
 
 proc auth_owner {nick host hand arg} {
@@ -57,71 +71,97 @@ set ahubnick [lindex $viper_ahubnick 0]
 set ahubaddr [lindex $viper_ahubnick 1]
 set ahubport [lindex $viper_ahubnick 2]
 
-proc viper_linkalthub {} {
-	if {![validuser $::hubnick]} {
-		addbot $::hubnick $::hubaddr
-		setuser $::hubnick botaddr $::hubaddr $::hubport $::hubport
-	}
-	if {![validuser $::ahubnick]} {
-	    if {[onchan $::ahubnick $::home_chan]} {
-		set ah_host "*!"
-		append ah_host [getchanhost $::ahubnick $::home_chan]
-
-		addbot $::ahubnick $::ahubaddr
-		setuser $::ahubnick botaddr $::ahubaddr $::ahubport $::ahubport
-		setuser $::ahubnick hosts $ah_host
-		setuser $::ahubnick PASS $::botnet_pass
-		chattr $::ahubnick +fo
-		botattr $::ahubnick +gs
-		link $::ahubnick
-		putlog "ViperBot Added: $::ahubnick @ $::ahubaddr P: $::ahubport "
-		if {[set utid [utimerexists viper_linkalthub]]!=""} {
-			killutimer $utid
+proc botnet_check {} {
+	if {[ishub]} {
+		if {![validuser $::hubnick]} {
+			addbot $::hubnick $::hubaddr:$::hubport
 		}
-		save
-	    } else {
-		utimer 5 viper_linkalthub
-	    }
-	} else { putlog "$::ahubnick is already added to the userfile." }
+		if {![validuser $::ahubnick]} {
+			addbot $::ahubnick $::ahubaddr:$::ahubport
+		}
+		if {[matchattr $::hubnick d] || ![matchattr $::hubnick o] || ![matchattr $::hubnick f]} {
+			chattr $::hubnick -d+of
+		}
+
+		if {[matchattr $::ahubnick d] || ![matchattr $::ahubnick o] || ![matchattr $::ahubnick f]} {
+			chattr $::ahubnick -d+fo
+		}
+		if {[matchbotattr $::ahubnick l] || ![matchbotattr $::ahubnick gs]} {
+			botattr $::ahubnick +gs-l
+		}
+		if {![passwdok $::hubnick $::botnet_pass]} {
+			setuser $::hubnick PASS $::botnet_pass
+		}
+		if {![passwdok $::ahubnick $::botnet_pass]} {
+			setuser $::ahubnick PASS $::botnet_pass
+		}
+		foreach b [userlist b] {
+			if {$b != $::hubnick && $b != $::ahubnick} {
+				if {[matchbotattr $b l] || ![matchbotattr $b gs]} {
+					botattr $b +gs-l
+				}
+				if {[matchattr $b d] || ![matchattr $b o] || ![matchattr $b f]} {
+					chattr $b -d+fo
+				}
+				if {![passwdok $b $::botnet_pass]} {
+					setuser $b PASS $::botnet_pass
+				}
+			}
+		}
+	} elseif {[isalthub]} {
+		if {![validuser $::ahubnick]} {
+			addbot $::ahubnick $::ahubaddr:$::ahubport
+		}
+		if {![validuser $::hubnick]} {
+			addbot $::hubnick $::hubaddr:$::hubport
+		}
+		if {![matchbotattr $::hubnick ghp]} {
+			botattr $::hubnick +ghp
+		}
+		if {[matchattr $::hubnick d] || ![matchattr $::hubnick o] || ![matchattr $::hubnick f]} {
+			chattr $::hubnick -d+of
+		}
+		if {![passwdok $::hubnick $::botnet_pass]} {
+			setuser $::hubnick PASS $::botnet_pass
+		}
+		foreach b [userlist b] {
+			if {$b != $::ahubnick && $b != $::hubnick} {
+				if {[matchbotattr $b l]} {
+					botattr $b -l
+				}
+				if {![passwdok $b $::botnet_pass]} {
+					setuser $b PASS $::botnet_pass
+				}
+			}
+		}
+	} else {
+		if {![validuser $::hubnick]} {
+			addbot $::hubnick $::hubaddr:$::hubport
+		}
+		if {![matchbotattr $::hubnick ghp]} {
+			botattr $::hubnick +ghp
+		}
+		if {[matchattr $::hubnick d] || ![matchattr $::hubnick o] || ![matchattr $::hubnick f]} {
+			chattr $::hubnick -d+of
+		}
+		if {![validuser $::ahubnick]} {
+			addbot $::ahubnick $::ahubaddr:$::ahubport
+		}
+		if {![matchbotattr $::ahubnick a]} {
+			botattr $::ahubnick +a
+		}
+
+		if {[matchattr $::ahubnick d] || ![matchattr $::ahubnick o] || ![matchattr $::ahubnick f]} {chattr $::ahubnick -d+fo}
+		if {![passwdok $::hubnick $::botnet_pass]} {
+			setuser $::hubnick PASS $::botnet_pass
+		}
+		if {![passwdok $::ahubnick $::botnet_pass]} {
+			setuser $::ahubnick PASS $::botnet_pass
+		}
+	}
+	save
 }
 
-proc viper_linkhub {} {
-	if {![validuser $::ahubnick]} {
-                addbot $::ahubnick $::ahubaddr
-                setuser $::ahubnick botaddr $::ahubaddr $::ahubport $::ahubport
-        }
-        if {![validuser $::ahubnick]} {
-	    if {[onchan $::hubnick $::home_chan]} {
-                set h_host "*!"
-                append h_host [getchanhost $::hubnick $::home_chan]
-
-                addbot $::hubnick $::hubaddr
-                setuser $::hubnick botaddr $::hubaddr $::hubport $::hubport
-                setuser $::hubnick hosts $h_host
-		setuser $::hubnick PASS $::botnet_pass
-                chattr $::hubnick +fo
-                botattr $::hubnick +ghp
-		link $::hubnick
-                putlog "ViperBot Added: $::hubnick @ $::hubaddr P: $::hubport "
-                if {[set utid [utimerexists viper_linkhub]]!=""} {
-                        killutimer $utid
-                }
-		save
-            } else {
-                utimer 5 viper_linkhub
-            }
-        } else { putlog "$::hubnick is already added to the userfile." }
-}
-
-if {[ishub]} {
-	viper_linkalthub
-}
-if {[isalthub]} {
-	viper_linkhub
-}
-
-
-# -- Thanks :)
 proc matchbotattr {bot flags} {
         foreach flag [split $flags ""] {
                 if {[lsearch -exact [split [botattr $bot] ""] $flag] < 0} then {
@@ -143,18 +183,22 @@ proc botnet_linkcheck {} {
         }
 }
 
-utimer 5 botnet_linkcheck
+if {!$loaded} {
+	utimer 5 "botnet_check"
+}
+if {!$loaded} {
+        utimer 5 "botnet_linkcheck"
+}
+
 
 
 # -- BOTNET CONTROL -- #
-# Written by Poppabear @ Efnet (c) 2012
-
 bind dcc n join proc_dcc_addchan
 bind dcc n part proc_dcc_rmchan
 
-bind bot b viper viper_bot
-
 bind need - * need_req
+
+bind bot b viper viper_bot
 
 bind mode - * mode_proc_fix
 proc mode_proc_fix {nick uhost hand chan mode {target ""}} {
@@ -162,7 +206,6 @@ proc mode_proc_fix {nick uhost hand chan mode {target ""}} {
     proc_mode $nick $uhost $hand $chan $mode
 }
 
-# addcmd -- Thanks! :)
 proc addcmd {type flag cmd proc usage desc} {
 global helpindex
         if {[lindex $flag 1] != ""} {
@@ -175,47 +218,47 @@ global helpindex
 addcmd dcc n addleaf proc_dcc_addleaf {<botname> <ip> <port>} {Add a leaf bot to the Botnet}
 addcmd dcc n addchan proc_dcc_addchan {<#channel> [key]} {Botnet join a #channel with the key, if there is one}
 addcmd dcc n rmchan proc_dcc_rmchan {<#channel>} {Botnet leave #channel}
+addcmd dcc n mrehash proc_dcc_mrehash {} {Botnet rehash (all bots)}
 
 proc proc_dcc_addleaf {hand idx args} {
-   set strn [string trim $args "{"]
-   set arg [string trim $strn "}"]
-
-   if {$arg == ""} {
-        putdcc $idx "USAGE: .addleaf <botname> <ip> <port>"
-        return 0
-   }
-
-   set l_bot [string range $arg 0 [expr [string first " " $arg] -1]]
-
-   if {![validchan $::home_chan]} {
-	return 0
-   }
-   if {[onchan $l_bot $::home_chan]} {
-        set astrn [string trimleft $arg $l_bot]
-        set l_port [string range $astrn [string wordstart $astrn 1000] end ]
-        set aarg [string trimright $astrn $l_port]
-        set l_add [string trimright [string trimleft $aarg " "]]
-        set l_host "*!"
-        append l_host [getchanhost $l_bot $::home_chan]
-
-        putlog "ViperBot Add: $l_bot @ $l_add P: $l_port "
-        putdcc $idx "Sending userfile to $l_bot ... "
-        addbot $l_bot $l_add
-        setuser $l_bot botaddr $l_add $l_port:$l_port
-        setuser $l_bot hosts $l_host
-        setuser $l_bot PASS $::botnet_pass
-        chattr $l_bot +fox
-        botattr $l_bot +ghpl
-        link $l_bot
-        putdcc $idx "Finished adding $l_bot!"
-        save
-    } else {
-        putlog "$l_bot is not in the home channel - $::home_chan. Try again when $l_bot joins $::home_chan"
-    }
-return 1
+        if {![isowner $hand]} { notowner $idx ; return 0 }
+        set leafnick [lindex $arg 0]
+        set leafhost [lindex $arg 1]
+        set leafport [lindex $arg 2]
+        if {$leafport == ""} {
+                putidx $idx "USAGE: .addleaf <botnick> <IPv4> <port>"
+                return 0
+        }
+        if {![ishub]} {
+                putidx $idx "This bot is not the hub, Please .addleaf on $::hubnick"
+                return 0
+        }
+        if {[validuser $leafnick]} {
+		putidx $idx "$leafnick is already in my userfile!"
+                return 0
+        }
+	if {![validchan $::home_chan] || ![onchan $leafnick $::home_chan]} {
+		putidx $idx "$leafnick is NOT on $::home_chan. Once $leafnick joins $::home_chan .addleaf again!"
+		return 0
+	} else {
+		set hosts "*!*"
+		set full_host [getchanhost $leafnick $::home_chan]
+		set host_strip [lindex [split $full_host "~"] 1]
+		if {$host_strip	!= ""} {
+			append hosts $host_strip
+		} else {
+			append hosts $full_host
+		}
+	        addbot $leafnick $leafhost:$leafport
+	        setuser $leafnick PASS $::botnet_pass
+		setuser $leafnick HOST $hosts
+	        chattr $leafnick +of
+	        botattr $leafnick +gs
+        	link $leafnick
+	        return 1
+	}
 }
 
-# -- Thanks :)
 proc proc_dcc_addchan {hand idx arg} {
   set chan [lindex $arg 0]
   set key [lindex $arg 1]
@@ -247,15 +290,21 @@ proc proc_dcc_rmchan {hand idx arg} {
    return 0
 }
 
+proc proc_dcc_mrehash {hand idx command} {
+        rehash
+        putidx $idx "Mass rehashing all bots"
+        vbots "mrehash"
+}
+
 proc addchan {chan key} {
-global global-chanmode
+global global-chanmode global-chanset
 
         channel add $chan
         foreach i "op invite key unban limit" {
                 channel set $chan need-$i ""
         }
         channel set $chan chanmode ${global-chanmode}
-        channel set $chan -autoop -protectfriends +protectops +autovoice
+	channel set $chan ${global-chanset}
         if {$key != ""} {
                         putserv "JOIN $chan $key"
         }
@@ -269,27 +318,79 @@ proc do_homechan {chan} {
                 save
         }
 }
+proc do_hubs_hosts {} {
+	if {[ishub]} {
+		if {![onchan $::botnick $::home_chan]} {
+			utimer 5 do_hubs_hosts
+			return
+		}
+                if {![validuser $::hubnick] || [getuser $::hubnick HOSTS] != ""} {
+                        return
+                } else {
+                        set hosts "*!*"
+                        set full_host [getchanhost $::botnick $::home_chan]
+                        set host_strip [lindex [split $full_host "~"] 1]
+                        if {$host_strip != ""} {
+                                append hosts $host_strip
+                        } else {
+                                append hosts $full_host
+                        }
+                        setuser $::hubnick HOST $hosts
+			putlog "$hosts was added to $::hubnick"
+                }
+
+	} elseif {[isalthub]} {
+                if {![onchan $::botnick $::home_chan]} {
+                        utimer 5 do_hubs_hosts
+                        return
+                }
+                if {![validuser $::ahubnick] || [getuser $::ahubnick HOSTS] != ""} {
+                        return
+                } else {
+                        set hosts "*!*"
+                        set full_host [getchanhost $::botnick $::home_chan]
+                        set host_strip [lindex [split $full_host "~"] 1]
+                        if {$host_strip != ""} {
+                                append hosts $host_strip
+                        } else {
+                                append hosts $full_host
+                        }
+                        setuser $::ahubnick HOST $hosts
+			putlog "$hosts was added to $::ahubnick"
+                }
+
+	}
+}
 
 do_homechan $home_chan
-timer 1 auth_msg
+timer 1 "do_hubs_hosts"
+timer 1 "auth_msg"
 
-# -- Thanks :)
 proc hasops {chan} {
 	foreach user [chanlist $chan] {
 		if {[isop $user $chan]} {
 			return 1
 		}
 	}
-	return 0
+return 0
 }
 
-# -- Thanks :)
 proc vbot {bot arg} {
         putbot $bot "viper $arg"
 }
 
 proc vbots {arg} {
         putallbots "viper $arg"
+}
+
+proc botlist { } {
+	set these [list]
+	foreach user [userlist] {
+		if {[matchattr $user b]} {
+			lappend these $user
+		}
+	}
+return $these
 }
 
 proc need_req {chan need} {
@@ -310,32 +411,26 @@ proc need_req {chan need} {
 	   req_key $chan
 	}
     }
-    return 0
-}
-proc bots_opped {chan} {
-	foreach bot [bots] {
-		if {![isop $bot $chan]} {
-			return 0
-		}
-	}
-return 1
 }
 
-proc req_op {chan} {
-	if {[bots_opped $chan]} {
-		return 0
-	}
-	if {[isop $::botnick $chan]} {
+proc req_op {chan {nick ""}} {
+	if {[string length $nick]} {
+		if {[islinked $nick]} {
+			set hand [nick2hand $::botnick $chan]
+			vbot $nick "givebot_ops $hand $chan"
+			putlog "$hand has requested ops from $nick"
+                }
+	} else {
+		# -- NEED TO FIX -- #
 		foreach bot [chanlist $chan b] {
-				putquick "MODE $chan +o $bot" -next
-				lappend rbots $bot
-		}
-	}
-	if {[info exists rbots]} {
-		putlog "Requested Ops from [join $rbots ", "] on $chan"
-	}
+			#if {[isop $bot $chan]} { set opnick $bot }
+	                set hand [nick2hand $bot $chan]
+        	        if {[matchattr $hand o|o $chan] && ![matchattr $hand d|d $chan] && [isop $bot $chan] && ![onchansplit $bot $chan] && [islinked $hand]} {
+				putquick "MODE $chan +o $hand" -next
+                	}
+        	}
 
-return 1
+	}
 }
 
 proc req_invite {chan} {
@@ -350,36 +445,70 @@ proc req_invite {chan} {
     } else {
         putlog "No bots to ask for in on $chan"
     }
-return 1
 }
 
 # -- VIPERBOT CORE -- #
 proc viper_bot {bot cmd arg} {
-	set cmd [string tolower [lindex [set larg [split $arg]] 0]]
-        set larg [split [set arg [join [lrange $larg 1 end]]]]
+	set cmd [string tolower [lindex [set varg [split $arg]] 0]]
+        set varg [split [set arg [join [lrange $varg 1 end]]]]
 
 	switch -exact -- $cmd {
                 "join" {
-                        set chan [lindex $larg 0]
-                        set key [lindex $larg 1]
+                        set chan [lindex $varg 0]
+                        set key [lindex $varg 1]
                         addchan $chan $key
                         return 1
                 }
                 "part" {
-                        set chan [lindex $larg 0]
+                        set chan [lindex $varg 0]
                         channel remove $chan
                         return 1
                 }
+		"mrehash" {
+			rehash
+			return 1
+		}
+		"checkbot_modes" {
+			set mnick [lindex $varg 0]
+			set chan [lindex $varg 1]
+			set vmode [lindex $varg 2]
+
+			switch -exact $vmode {
+				"+o" {
+					if {![botisop $chan]} {
+							req_op $chan $mnick
+					}
+
+				}
+				"-o" {
+
+				}
+			}
+
+		}
+		"req_op" {
+
+		}
+		"givebot_ops" {
+			set hand [lindex $varg 0]
+			set chan [lindex $varg 1]
+			putlog "Giving $hand Ops ..."
+			putquick "MODE $chan +o $hand" -next
+		}
 	}
 }
 
 proc proc_mode {nick uhost hand chan mode} {
   set vmode [lindex $mode 0]
-  set mode_bot [lindex $mode 1]
+  set mnick [lindex $mode 1]
 
 	switch -exact $vmode {
 		"+o" {
-			req_op $chan
+			if {[isbotnick $mnick]} {
+				putlog "Checking if bots need ops ..."
+				vbots "checkbot_modes $mnick $chan $vmode"
+			return 0
+			}
 		}
 	}
 }
@@ -393,5 +522,5 @@ proc evnt:init_server {type} {
 }
 
 
+set loaded 1
 putlog "-- ViperBot TCL by Poppabear Loaded! --"
-
