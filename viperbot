@@ -260,7 +260,6 @@ viper_conf(){
 		$viper_dir/viper -m $viper_conf
 		echo -e "\E[32mFinished, Created '$viper_nick.conf' - Should be running!\033[0m"
 	fi
-  viper_run
 }
 
 viper_run(){
