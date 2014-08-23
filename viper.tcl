@@ -246,7 +246,7 @@ proc do_hubs_hosts {} {
                         } else {
                                 append hosts $full_host
                         }
-                        setuser $::hubnick HOST $hosts
+                        setuser $::hubnick HOSTS $hosts
                         putlog "$hosts was added to $::hubnick"
                 }
 
@@ -266,7 +266,7 @@ proc do_hubs_hosts {} {
                         } else {
                                 append hosts $full_host
                         }
-                        setuser $::ahubnick HOST $hosts
+                        setuser $::ahubnick HOSTS $hosts
                         putlog "$hosts was added to $::ahubnick"
                 }
 
