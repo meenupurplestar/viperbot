@@ -143,7 +143,18 @@ viper_egginstall(){
 	viper_cwd=$PWD
 	echo -e "\E[32mInstalling Eggdop...\033[0m"
 	cd $viper_tmp/eggdrop*.*
-	./configure
+	echo -e "......................................."
+  echo -e "Here you need to choose if you will be using TLS (SSL). If you choose to disable now, you can NOT re-enable later."
+  echo -en "Would you like to DISABLE TLS (y/n)?"
+  read yn
+
+ if [[ $yn = "n" || $yn = "N" || $yn = "no" || $yn = "No" ]]; then
+   ./configure
+    viper_makecmd sslcert
+ else
+   ./configure --disable-tls
+ fi
+
 	viper_makecmd config
 	viper_makecmd static
 	viper_makecmd install DEST=$viper_dir
